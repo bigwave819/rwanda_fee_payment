@@ -1,0 +1,43 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDING
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id String @id @default(uuid())
+  fullName String
+  phoneNumber String @unique
+  password String
+  role Role @default(USER)
+
+  payment Payment[]
+
+  @@index([phoneNumber])
+  @@map("users")
+}
+
+model Payment {
+  id String @id @default(uuid())
+  status PaymentStatus @default(PENDING)
+  amount String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payment")
+}
