@@ -2,8 +2,10 @@
 
 import { View, Text, KeyboardAvoidingView, Platform, TextInput, Pressable } from 'react-native'
 import React from 'react'
+import { useRouter } from 'expo-router'
 
 const ForgotPassword = () => {
+    const router = useRouter()
   return (
     <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : "height"}
@@ -20,7 +22,10 @@ const ForgotPassword = () => {
                 keyboardType='phone-pad'
             />
 
-            <Pressable className='w-full rounded-lg bg-black py-5 mt-10'>
+            <Pressable 
+                className='w-full rounded-lg bg-black py-5 mt-10'
+                onPress={() => router.push('/(auth)/Otp_verification')}
+            >
                 <Text className='text-center text-white text-lg'>Submit</Text>
             </Pressable>
         </View>

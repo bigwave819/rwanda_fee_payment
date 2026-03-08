@@ -1,10 +1,11 @@
-import { View, Text, TextInput } from 'react-native'
+import { View, Text, TextInput, Pressable } from 'react-native'
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { Link } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 
 const Login = () => {
+  const router = useRouter()
   return (
     <SafeAreaView className="flex-1 items-center px-6 bg-white">
 
@@ -60,11 +61,14 @@ const Login = () => {
       </View>
 
       {/* LOGIN BUTTON */}
-      <View className="w-full bg-black py-4 rounded-lg items-center">
+      <Pressable
+        className="w-full bg-black py-4 rounded-lg items-center"
+        onPress={() => router.push('/(auth)/Otp_verification')}
+      >
         <Text className="text-white font-bold text-lg">
           Login
         </Text>
-      </View>
+      </Pressable>
 
       {/** THE FOOTER */}
       <View>
