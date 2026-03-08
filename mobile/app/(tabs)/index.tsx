@@ -1,9 +1,12 @@
-import { View, Text } from 'react-native'
+import { View, Text, Pressable } from 'react-native'
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Bell, ChevronRight } from 'lucide-react-native'
+import { useRouter } from 'expo-router'
 
 const Index = () => {
+
+  const router = useRouter();
 
 
   const Services = [
@@ -58,9 +61,12 @@ const Index = () => {
           <Text className="text-gray-500">What Would You Like to Do?</Text>
         </View>
 
-        <View className='bg-gray-200 p-2.5 rounded-full'>
+        <Pressable 
+          className='bg-gray-200 p-2.5 rounded-full'
+          onPress={() => router.push('/notifications')}
+        >
           <Bell size={22} color="#4B5563" />
-        </View>
+        </Pressable>
       </View>
 
       <Text className='text-4xl font-bold mt-5'>
