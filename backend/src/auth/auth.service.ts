@@ -1,117 +1,177 @@
-import { PhoneNumber } from './../../node_modules/libphonenumber-js/core/index.d';
-import { BadRequestException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { LoginDto } from './dto/login-dto';
-import { RegisterDto } from './dto/register-dto';
-import jwt from 'jsonwebtoken'
-import bcrypt from 'bcrypt'
+import { RegisterDto } from './dto/register.dto';
+import { AuthResponseDto } from './dto/auth-response.dto';
+import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
+import { JwtService } from '@nestjs/jwt';
+import { LoginDto } from './dto/login.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
-    private readonly Salt = 12; 
-    constructor(private prisma: PrismaService) {}
+  private readonly SALT_ROUNDS = 12;
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
 
-    private signToken(user: { id: string; email: string; role: string }) {
-        return jwt.sign({
-            sub: user.id,
-            email: user.email,
-            role: user.role
+  //   Register a new user
+  async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
+    const { email, password, fullName, phoneNumber } = registerDto;
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    try {
+      const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
+      const user = await this.prisma.user.create({
+        data: {
+          email,
+          phoneNumber,
+          password: hashedPassword,
+          fullName
         },
-            process.env.JWT_SECRET!,
-            { expiresIn: process.env.JWT_EXPIRES_IN }
-        );
+        select: {
+          id: true,
+          email: true,
+          phoneNumber: true,
+          fullName: true,
+          role: true,
+          password: false,
+        },
+      });
+
+      const tokens = await this.generateTokens(user.id, user.email);
+
+      await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+      return {
+        ...tokens,
+        user,
+      };
+    } catch (error) {
+      console.error('Error during user registration:', error);
+      throw new InternalServerErrorException(
+        'An error occurred during registration',
+      );
+    }
+  }
+
+  // Generate access and refresh tokens
+  private async generateTokens(
+    userId: string,
+    email: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const payload = { sub: userId, email };
+    const refreshId = randomBytes(16).toString('hex');
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: '15m',
+        secret: this.configService.get<string>('JWT_SECRET'),
+      }),
+
+      this.jwtService.signAsync(
+        { ...payload, refreshId },
+        {
+          expiresIn: '7d',
+          secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        },
+      ),
+
+    ]);
+
+    return { accessToken, refreshToken };
+  }
+
+  // Update refresh token in the database
+  async updateRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ): Promise<void> {
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshToken },
+    });
+
+  }
+
+  // Refresh access token
+  async refreshTokens(userId: string): Promise<AuthResponseDto> {
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        phoneNumber: true,
+        fullName: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
     }
 
-    async login(loginDto: LoginDto) {
-        try {
+    const tokens = await this.generateTokens(user.id, user.email);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
-            const { phoneNumber, password } = loginDto
+    return {
+      ...tokens,
+      user,
+    };
 
-            const user = await this.prisma.user.findUnique({
-                where: { phoneNumber }
-            })
+  }
 
-            if (!user) {
-                throw new NotFoundException("the user not found")
-            }
+  // Log out
+  async logout(userId: string): Promise<void> {
 
-            const passwordMatch = await bcrypt.compare(password, user.password)
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshToken: null },
+    });
 
-            if (!passwordMatch) {
-                throw new BadRequestException("the password and email is incorect")
-            }
+  }
 
-            const token = this.signToken(user)
+  // Login
+  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+    
+    const { email, password } = loginDto;
 
-            return {
-                token,
-                user: {
-                    id: user.id,
-                    phoneNumber: user.PhoneNumber,
-                    fullName: user.fullName,
-                    role: user.role
-                }
-            }
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
 
-        } catch (error) {
-            console.error('Error during user registration:', error);
-            if (error instanceof HttpException) {
-                throw error;
-            }
-            throw new InternalServerErrorException(
-                'An error occurred during registration',
-            );
-        }
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      throw new UnauthorizedException('Invalid email or password');
     }
-    async create(registerDto: RegisterDto) {
-        const { fullName, phoneNumber, password } = registerDto;
-        const existingUser = await this.prisma.user.user.findUnique({
-            where: { phoneNumber }
-        })
 
-        if (existingUser) {
-            throw new BadRequestException("the phone numbe in use");
-        }
+    const tokens = await this.generateTokens(user.id, user.email);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
-        const newPassword = await bcrypt.hash(password, this.Salt);
-
-        try {
-            const hashedPassword = await bcrypt.hash(password, this.Salt)
-
-            const user = await this.prisma.user.create({
-                data: {
-                    fullName,
-                    phoneNumber,
-                    password: hashedPassword
-                },
-                select: {
-                    id: true,
-                    email: true,
-                    fullName: true,
-                    password: false,
-                    role: true
-                }
-            });
-
-            const token = this.signToken(user);
-
-            return {
-                token,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    fullName: user.fullName,
-                    role: user.role,
-                },
-            };
-        } catch (error) {
-            console.error('Error during user registration:', error);
-            if (error instanceof HttpException) {
-                throw error;
-            }
-            throw new InternalServerErrorException(
-                'An error occurred during registration',
-            );
-        }
-    }
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        fullName: user.fullName,
+        role: user.role,
+      },
+    };
+  }
 }

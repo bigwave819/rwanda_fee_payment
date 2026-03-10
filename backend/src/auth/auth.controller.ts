@@ -1,23 +1,52 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login-dto';
-import { RegisterDto } from './dto/register-dto';
+import { RegisterDto } from './dto/register.dto';
+import { AuthResponseDto } from './dto/auth-response.dto';
+import { RefreshTokenGuard } from './guard/refresh-token.guard';
+import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { JwtAuthGuard } from 'src/common/Guards/jwt-auth.guard';
+import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) {}
 
-    @Post('/register')
-    async createUser(
-        @Body() registerDto: RegisterDto
-    ) {
-        return await this.authService.create(registerDto)
-    }
+  constructor(private readonly authService: AuthService) {}
 
-    @Post('/login')
-    async loginUser(
-        @Body() loginDto: LoginDto
-    ) {
-        return await this.authService.login(loginDto)
-    }
+  //   Register api
+  @Post('register')
+  @HttpCode(201)
+  async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
+    return await this.authService.register(registerDto);
+  }
+
+  // Refresh access token
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RefreshTokenGuard)
+  async refresh(@GetUser('id') userId: string): Promise<AuthResponseDto> {
+    return await this.authService.refreshTokens(userId);
+  }
+
+  // Logout user and invalidate refresh token
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async logout(@GetUser('id') userId: string): Promise<{ message: string }> {
+    await this.authService.logout(userId);
+    return { message: 'Successfully logged out' };
+  }
+
+  // Login
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
+    return await this.authService.login(loginDto);
+  }
 }
