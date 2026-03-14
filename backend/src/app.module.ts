@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { ServicesModule } from './services/services.module';
+import { BillsModule } from './bills/bills.module';
 
 
 @Module({
@@ -15,7 +16,7 @@ import { ServicesModule } from './services/services.module';
       envFilePath: '.env',
     }),
     PrismaModule, 
-    AuthModule, ServicesModule
+    AuthModule, ServicesModule, BillsModule
   ],
   controllers: [AppController],
   providers: [AppService],
