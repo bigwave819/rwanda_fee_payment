@@ -8,10 +8,10 @@ import { Bill } from '@prisma/client';
 @Injectable()
 export class BillsService {
 
-    constructor (private prisma: PrismaService) {}
+    constructor(private prisma: PrismaService) { }
 
     //create the bill
-        async createBill(userId: string, createBillDto: CreateBillDto): Promise<BillResponseDto> {
+    async createBill(userId: string, createBillDto: CreateBillDto): Promise<BillResponseDto> {
         const { amount, serviceId, dueDate } = createBillDto;
         const service = await this.prisma.service.findUnique({
             where: { id: serviceId }
@@ -51,6 +51,25 @@ export class BillsService {
         if (bills.length === 0) {
             throw new NotFoundException("There are no bills found");
         }
+
+        return bills;
+    }
+
+    // get user-specific bills
+    async getUserBills(userId: string): Promise<BillResponseDto[]> {
+        const bills = await this.prisma.bill.findMany({
+            where: { userId },
+            select: {
+                id: true,
+                amount: true,
+                userId: true,
+                serviceId: true,
+                dueDate: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
 
         return bills;
     }

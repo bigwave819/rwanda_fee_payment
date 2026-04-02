@@ -2,9 +2,37 @@ import { View, Text, TextInput } from 'react-native'
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { Link } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
+import { useRegister } from '../../hooks/mutations'
+import { useState } from 'react'
+import { ActivityIndicator, Pressable } from 'react-native'
 
-const Login = () => {
+const Signup = () => {
+  const router = useRouter();
+  const { mutate: register, isPending } = useRegister();
+
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleSignup = () => {
+    if (password !== confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+
+    register({ fullName, email, phoneNumber, password }, {
+      onSuccess: () => {
+        router.replace('/(auth)/Login');
+      },
+      onError: (err) => {
+        console.error("Signup failed", err);
+      }
+    });
+  }
+
   return (
     <SafeAreaView className="flex-1 items-center px-6 bg-white">
 
@@ -24,19 +52,48 @@ const Login = () => {
         </Text>
       </View>
 
+      {/* INPUT FULL NAME */}
+      <View className="relative w-full mb-4">
+        <View className="absolute left-3 top-6 z-10">
+          <Ionicons name="person-outline" size={20} color="gray" />
+        </View>
+        <TextInput
+          placeholder="Full Name"
+          className="w-full border-2 border-black bg-white rounded-lg pl-10 py-4 text-lg"
+          value={fullName}
+          onChangeText={setFullName}
+        />
+      </View>
+
+      {/* INPUT EMAIL */}
+      <View className="relative w-full mb-4">
+        <View className="absolute left-3 top-6 z-10">
+          <Ionicons name="mail-outline" size={20} color="gray" />
+        </View>
+        <TextInput
+          placeholder="Email"
+          keyboardType="email-address"
+          className="w-full border-2 border-black bg-white rounded-lg pl-10 py-4 text-lg"
+          value={email}
+          onChangeText={setEmail}
+        />
+      </View>
+
       {/* INPUT PHONE */}
       <View className="relative w-full mb-4">
-
         <View className="absolute left-3 top-6 z-10">
           <Ionicons name="call-outline" size={20} color="gray" />
         </View>
-
         <TextInput
           placeholder="Phone Number"
           keyboardType="phone-pad"
-          className="w-full border-2 border-black bg-white rounded-lg pl-10 py-5 text-lg"
+          className="w-full border-2 border-black bg-white rounded-lg pl-10 py-4 text-lg"
+          value={phoneNumber}
+          onChangeText={setPhoneNumber}
         />
       </View>
+
+
 
       {/* INPUT PASSWORD */}
       <View className="relative w-full mb-4">
@@ -48,7 +105,9 @@ const Login = () => {
         <TextInput
           placeholder="Password"
           secureTextEntry
-          className="w-full border-2 border-black bg-white rounded-lg pl-10 py-5 text-lg"
+          className="w-full border-2 border-black bg-white rounded-lg pl-10 py-4 text-lg"
+          value={password}
+          onChangeText={setPassword}
         />
       </View>
 
@@ -58,20 +117,30 @@ const Login = () => {
         <View className="absolute left-3 top-6 z-10">
           <Ionicons name="lock-closed-outline" size={20} color="gray" />
         </View>
-        
+
         <TextInput
           placeholder=" Confirm Password"
           secureTextEntry
-          className="w-full border-2 border-black bg-white rounded-lg pl-10 py-5 text-lg"
+          className="w-full border-2 border-black bg-white rounded-lg pl-10 py-4 text-lg"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
         />
       </View>
 
-      {/* LOGIN BUTTON */}
-      <View className="w-full bg-black py-4 rounded-lg items-center">
-        <Text className="text-white font-bold text-lg">
-          Sign Up
-        </Text>
-      </View>
+      {/* SIGNUP BUTTON */}
+      <Pressable
+        className={`w-full py-4 rounded-lg items-center ${isPending ? 'bg-gray-700' : 'bg-black'}`}
+        onPress={handleSignup}
+        disabled={isPending}
+      >
+        {isPending ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text className="text-white font-bold text-lg">
+            Sign Up
+          </Text>
+        )}
+      </Pressable>
 
       {/** THE FOOTER */}
       <View>
@@ -82,4 +151,4 @@ const Login = () => {
   )
 }
 
-export default Login
+export default Signup

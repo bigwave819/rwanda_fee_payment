@@ -60,6 +60,7 @@ model Service {
 model Bill {
   id String @id @default(uuid())
   amount Int 
+  status BillStatus @default(PENDING)
 
   userId String
   user User @relation(fields: [userId], references: [id])
@@ -81,7 +82,7 @@ model Bill {
 model Payment {
   id String @id @default(uuid())
   status PaymentStatus @default(PENDING)
-  amount String
+  amount Int
 
   userId String
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -12,6 +12,10 @@ global.Text = Text;
 
 SplashScreen.preventAutoHideAsync();
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
+
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     'AveriaLibre_400Regular': require('../node_modules/@expo-google-fonts/averia-libre/400Regular/AveriaLibre_400Regular.ttf'),
@@ -28,13 +32,13 @@ export default function RootLayout() {
     return null;
   }
 
-  return(
-    <>
-      <Stack screenOptions={{ headerShown: false }}> 
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
       </Stack>
       <StatusBar backgroundColor='gray' />
-    </>
+    </QueryClientProvider>
   )
 }

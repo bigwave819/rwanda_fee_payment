@@ -3,9 +3,28 @@ import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { Link, useRouter } from 'expo-router'
+import { useLogin } from '../../hooks/mutations'
+import { useState } from 'react'
+import { ActivityIndicator } from 'react-native'
 
 const Login = () => {
   const router = useRouter()
+  const { mutate: login, isPending } = useLogin();
+
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = () => {
+    login({ phoneNumber, password }, {
+      onSuccess: () => {
+        router.replace('/(tabs)');
+      },
+      onError: (err) => {
+        console.error("Login failed", err);
+      }
+    });
+  }
+
   return (
     <SafeAreaView className="flex-1 items-center px-6 bg-white">
 
@@ -36,6 +55,8 @@ const Login = () => {
           placeholder="Phone Number"
           keyboardType="phone-pad"
           className="w-full border-2 border-black bg-white rounded-lg pl-10 py-5 text-lg"
+          value={phoneNumber}
+          onChangeText={setPhoneNumber}
         />
       </View>
 
@@ -50,6 +71,8 @@ const Login = () => {
           placeholder="Password"
           secureTextEntry
           className="w-full border-2 border-black bg-white rounded-lg pl-10 py-5 text-lg"
+          value={password}
+          onChangeText={setPassword}
         />
       </View>
 
@@ -62,12 +85,17 @@ const Login = () => {
 
       {/* LOGIN BUTTON */}
       <Pressable
-        className="w-full bg-black py-4 rounded-lg items-center"
-        onPress={() => router.push('/(auth)/Otp_verification')}
+        className={`w-full py-4 rounded-lg items-center ${isPending ? 'bg-gray-700' : 'bg-black'}`}
+        onPress={handleLogin}
+        disabled={isPending}
       >
-        <Text className="text-white font-bold text-lg">
-          Login
-        </Text>
+        {isPending ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text className="text-white font-bold text-lg">
+            Login
+          </Text>
+        )}
       </Pressable>
 
       {/** THE FOOTER */}

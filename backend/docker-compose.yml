@@ -10,6 +10,8 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:root@database:5432/nestdb
     depends_on:
       - database
 

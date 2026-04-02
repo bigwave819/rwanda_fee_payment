@@ -40,7 +40,7 @@
           }
         }
       ],
-            [
+      [
         "expo-font",
         {
           "fonts": [
@@ -48,7 +48,8 @@
             "node_modules/@expo-google-fonts/averia-libre/700Bold/AveriaLibre_700Bold.ttf"
           ]
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
